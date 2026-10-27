@@ -93,37 +93,4 @@ elif search_type == "PubChem API 직접 검색":
             
             matched_key = next((k for k in KNOWN_HALF_LIVES if k.lower() == ingredient_input.strip().lower()), None)
             if matched_key:
-                selected_half_life = KNOWN_HALF_LIVES[matched_key]["half_life"]
-                selected_dose = KNOWN_HALF_LIVES[matched_key]["default_dose"]
-                st.info(f"매핑된 평균 반감기({selected_half_life}시간) 및 기본 용량({selected_dose}mg)을 불어왔습니다.")
-            else:
-                st.warning("화학 정보 조회가 완료되었으나 반감기 자동 매칭 데이터가 없으므로 아래 폼에서 반감기를 조정해 주세요.")
-        else:
-            st.error(api_result["message"])
-
-
-# ---------------------------------------------------------
-# 4. 시뮬레이션 입력 폼
-# ---------------------------------------------------------
-st.subheader("2. 시뮬레이션 수치 입력")
-with st.form("simulation_form"):
-    initial_amount = st.number_input(
-        "초기량 (mg)",
-        min_value=0.0,
-        max_value=10000.0,
-        value=float(selected_dose),
-        step=10.0,
-        format="%.2f"
-    )
-    half_life = st.number_input(
-        "반감기 (시간)",
-        min_value=0.0,
-        max_value=1000.0,
-        value=float(selected_half_life),
-        step=0.5,
-        format="%.2f"
-    )
-    duration = st.number_input(
-        "관찰 시간 (시간)",
-        min_value=0.0,
-        max_value=1000.0
+                selected_half_life = KNOWN_HALF_
