@@ -8,6 +8,16 @@ def calculate_remaining(initial_amount, half_life, elapsed_time):
     return initial_amount * np.power(0.5, elapsed_time / half_life)
 
 
+def recommend_dosing_interval(half_life):
+    """
+    반감기를 바탕으로 학술적 기준의 권장 복용 간격 범위(시간)를 산출한다.
+    (일반적으로 약동학 모델에서 정상 상태 유지를 위한 복용 간격은 반감기의 1~2배 수준임)
+    """
+    min_interval = half_life
+    max_interval = half_life * 2.0
+    return min_interval, max_interval
+
+
 # 페이지 기본 설정
 st.set_page_config(
     page_title="가상 약물 잔존량 학습",
@@ -74,10 +84,13 @@ if submitted:
         st.error("관찰 시간은 0시간보다 크게 입력해 주세요.")
         st.stop()
 
-    # 데이터 연산 (관찰 구간을 201개 지점으로 분할)
+    # 데이터 연산
     times = np.linspace(0.0, duration, 201)
     amounts = calculate_remaining(initial_amount, half_life, times)
     percentages = (amounts / initial_amount) * 100
+
+    # 학술적 복용 간격 추천 연산
+    rec_min, rec_max = recommend_dosing_interval(half_life)
 
     result = pd.DataFrame({
         "경과 시간 (시간)": times,
@@ -88,16 +101,23 @@ if submitted:
     final_amount = float(amounts[-1])
     final_percentage = float(percentages[-1])
 
-    # 주요 계산 결과 지표
+    # 주요 계산 결과 및 권장 복용 간격 지표
     st.subheader("계산 결과")
     st.caption(
         f"초기량 {initial_amount:g}mg / "
         f"반감기 {half_life:g}시간 / "
         f"관찰 시간 {duration:g}시간"
     )
-    col1, col2 = st.columns(2)
-    col1.metric("관찰 종료 시점 잔존량", f"{final_amount:.6g} mg")
-    col2.metric("초기량 대비 잔존 비율", f"{final_percentage:.6g}%")
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("종료 시점 잔존량", f"{final_amount:.4g} mg")
+    col2.metric("초기량 대비 비율", f"{final_percentage:.4g}%")
+    col3.metric("참조 복용 간격", f"{rec_min:g} ~ {rec_max:g} 시간")
+
+    st.info(
+        f"💡 **학술적 참고 사항**: 입력된 반감기({half_life:g}시간)를 바탕으로 한 이론적 권장 복용 간격은 "
+        f"**{rec_min:g}시간 ~ {rec_max:g}시간**입니다. (체내 잔존량이 $25\\% \\sim 50\\%$ 수준으로 떨어지는 시점)"
+    )
 
     # 잔존량 변화 추이 그래프
     st.subheader("시간에 따른 잔존량")
@@ -115,25 +135,19 @@ if submitted:
         use_container_width=True
     )
 
-    st.info(
-        "매 반감기마다 그때 남아 있는 양의 절반이 제거됩니다. "
-        "이 모델에서 잔존량 감소가 곧 약효 감소를 뜻하지는 않습니다."
-    )
     st.caption(
         "매우 작은 값은 표시 정밀도나 컴퓨터의 수치 표현 한계에 "
         "영향을 받을 수 있습니다. 화면에 0이 표시되더라도 "
         "실제 약물이 완전히 제거되었다는 뜻은 아닙니다."
     )
 
-    # 모델 한계 설명
+    # 모델 한계 및 원리 설명
     with st.expander("계산 원리와 모델의 한계"):
         st.latex(r"A(t)=A_0 \times (1/2)^{t/T}")
         st.write(
-            "A₀는 초기량, t는 경과 시간, T는 반감기입니다. "
-            "흡수 과정, 조직 분포, 개인별 대사 차이, "
-            "반복 투여와 비선형 제거는 반영하지 않습니다."
-        )
-        st.write(
-            "입력 상한은 프로그램 운영을 위한 범위이며 "
-            "의학적으로 안전한 양이나 시간을 의미하지 않습니다."
+            "• **A₀**: 초기량, **t**: 경과 시간, **T**: 반감기\n"
+            "• **복용 간격 추정 원리**: 약동학 기본 모델에서는 약물의 체내 적정 농도 유지를 위해 "
+            "보통 반감기의 1배~2배 시점($T \\sim 2T$)을 참조 복용 간격으로 고찰합니다.\n"
+            "• **한계점**: 본 계산은 단회 투여 기준 모델이며, 실제 임상에서는 치료 창(Therapeutic window), "
+            "최소 유효 농도,독성 농도, 독성 역학, 개인별 대사율 등에 따라 복용 간격이 달라집니다."
         )
